@@ -1,0 +1,144 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>FinPilot — Your recommendation</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+  <main class="wrap">
+    <h1>FinPilot <span class="tag">Phase 0 prototype</span></h1>
+    <p><a href="/">&larr; Start over</a></p>
+
+    {% if rec.guardrails %}
+      <section class="guardrails">
+        <h2>Before you invest</h2>
+        {% for g in rec.guardrails %}
+          <p class="guardrail {{ g.severity }}">{{ g.message }}</p>
+        {% endfor %}
+      </section>
+    {% endif %}
+
+    <section class="recommendation">
+      <h2>Recommended for: {{ goal_label }}</h2>
+      <p class="portfolio-name">{{ rec.portfolio.name }} portfolio</p>
+      <p class="allocation">
+        {{ rec.portfolio.equity_pct }}% equities &middot;
+        {{ rec.portfolio.bond_pct }}% bonds &middot;
+        {{ rec.portfolio.cash_pct }}% cash
+      </p>
+      <p class="explanation">{{ rec.explanation }}</p>
+    </section>
+
+    <section class="simulator">
+      <h2>Simulator</h2>
+      <p class="disclaimer">
+        The lines below use illustrative assumed annual returns for the
+        {{ rec.portfolio.name }} portfolio, not real market data or a forecast.
+      </p>
+
+      <div class="controls">
+        <label>Monthly contribution: €<span id="contrib-val">{{ rec.suggested_monthly_contribution | round(0) }}</span>
+          <input type="range" id="contrib" min="0" max="2000" step="10"
+                 value="{{ rec.suggested_monthly_contribution | round(0) }}">
+        </label>
+
+        <label>Horizon: <span id="years-val">{{ horizon }}</span> years
+          <input type="range" id="years" min="1" max="40" step="1" value="{{ horizon | round(0) }}">
+        </label>
+
+        <label>Risk level: <span id="risk-val">{{ rec.portfolio.name }}</span>
+          <input type="range" id="risk" min="1" max="4" step="1" value="{{ rec.portfolio.band.value }}">
+        </label>
+      </div>
+
+      <svg id="chart" viewBox="0 0 640 320" role="img" aria-label="Projected balance by scenario"></svg>
+      <div id="legend" class="legend"></div>
+      <p id="final-balances"></p>
+    </section>
+  </main>
+
+  <script>
+    // No charting library — this is a Phase 0 prototype and pulling in a CDN dependency
+    // for three lines on a chart wasn't worth it. Plain SVG, built by hand below.
+    const initialAmount = {{ profile.current_savings }};
+    const portfolioNames = {1: "Conservative", 2: "Balanced", 3: "Growth", 4: "Aggressive"};
+    const colors = { pessimistic: '#c0392b', expected: '#2c3e50', optimistic: '#27ae60' };
+
+    const contribInput = document.getElementById('contrib');
+    const yearsInput = document.getElementById('years');
+    const riskInput = document.getElementById('risk');
+    const svg = document.getElementById('chart');
+
+    const PAD = { top: 12, right: 12, bottom: 28, left: 64 };
+    const W = 640, H = 320;
+
+    function drawChart(scenarios) {
+      const allPoints = scenarios.flatMap(s => s.points);
+      const minYear = Math.min(...allPoints.map(p => p.year));
+      const maxYear = Math.max(...allPoints.map(p => p.year));
+      const minBalance = Math.min(0, ...allPoints.map(p => p.balance));
+      const maxBalance = Math.max(...allPoints.map(p => p.balance), minBalance + 1);
+
+      const plotW = W - PAD.left - PAD.right;
+      const plotH = H - PAD.top - PAD.bottom;
+
+      const x = year => PAD.left + (maxYear === minYear ? 0 : (year - minYear) / (maxYear - minYear) * plotW);
+      const y = balance => PAD.top + plotH - (balance - minBalance) / (maxBalance - minBalance) * plotH;
+
+      let svgParts = [];
+
+      // gridlines + y-axis labels (min, mid, max)
+      [minBalance, (minBalance + maxBalance) / 2, maxBalance].forEach(val => {
+        const yy = y(val);
+        svgParts.push(`<line x1="${PAD.left}" y1="${yy}" x2="${W - PAD.right}" y2="${yy}" stroke="#eee" />`);
+        svgParts.push(`<text x="${PAD.left - 8}" y="${yy + 4}" font-size="11" fill="#888" text-anchor="end">€${Math.round(val).toLocaleString()}</text>`);
+      });
+
+      // x-axis labels (min and max year)
+      [minYear, maxYear].forEach(yr => {
+        svgParts.push(`<text x="${x(yr)}" y="${H - 8}" font-size="11" fill="#888" text-anchor="middle">yr ${yr}</text>`);
+      });
+
+      scenarios.forEach(s => {
+        const path = s.points.map((p, i) => `${i === 0 ? 'M' : 'L'} ${x(p.year).toFixed(1)} ${y(p.balance).toFixed(1)}`).join(' ');
+        svgParts.push(`<path d="${path}" fill="none" stroke="${colors[s.label]}" stroke-width="2.5" />`);
+      });
+
+      svg.innerHTML = svgParts.join('\n');
+    }
+
+    function drawLegend(scenarios) {
+      document.getElementById('legend').innerHTML = scenarios.map(s =>
+        `<span class="legend-item"><span class="swatch" style="background:${colors[s.label]}"></span>${s.label} (${(s.annual_return * 100).toFixed(1)}%/yr)</span>`
+      ).join('');
+    }
+
+    async function refresh() {
+      const monthly_contribution = Number(contribInput.value);
+      const years = Number(yearsInput.value);
+      const risk_band = Number(riskInput.value);
+
+      document.getElementById('contrib-val').textContent = monthly_contribution;
+      document.getElementById('years-val').textContent = years;
+      document.getElementById('risk-val').textContent = portfolioNames[risk_band];
+
+      const resp = await fetch('/api/simulate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ initial_amount: initialAmount, monthly_contribution, years, risk_band })
+      });
+      const data = await resp.json();
+
+      drawChart(data.scenarios);
+      drawLegend(data.scenarios);
+
+      document.getElementById('final-balances').textContent =
+        data.scenarios.map(s => `${s.label}: €${s.final_balance.toLocaleString()}`).join('   |   ');
+    }
+
+    [contribInput, yearsInput, riskInput].forEach(el => el.addEventListener('input', refresh));
+    refresh();
+  </script>
+</body>
+</html>

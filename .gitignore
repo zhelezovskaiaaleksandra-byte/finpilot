@@ -1,0 +1,15 @@
+# Virtual environment — never commit this, everyone creates their own locally
+venv/
+.venv/
+
+# Python bytecode cache
+__pycache__/
+*.pyc
+
+# Environment variables / secrets (none yet, but this project will have them soon)
+.env
+
+# Editor/OS clutter
+.vscode/
+.claude/
+.DS_Store
