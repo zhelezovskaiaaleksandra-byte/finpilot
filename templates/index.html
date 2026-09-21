@@ -62,9 +62,10 @@
           That debt is high-interest (credit cards, personal loans — not a mortgage or student loan)
         </label>
 
-        <label>Emergency fund (months of expenses saved as a cash buffer)
-          <input type="number" step="0.1" name="emergency_fund_months" value="0" required>
-        </label>
+        <p class="hint">
+          We'll work out how many months of expenses your savings would cover from the numbers above —
+          no need to figure that out yourself.
+        </p>
 
         <label>Amount available to invest each month
           <input type="number" step="0.01" name="monthly_amount_available" required>
@@ -81,10 +82,6 @@
             {% endfor %}
           </select>
         </label>
-
-        <label>Goal-specific horizon in years (optional — leave blank to use your general horizon below)
-          <input type="number" step="0.5" name="goal_horizon_years">
-        </label>
       </fieldset>
 
       <fieldset>
@@ -98,7 +95,7 @@
           </select>
         </label>
 
-        <label>General investment horizon (years until you'd need this money)
+        <label>How many years until you'll need this money?
           <input type="number" step="0.5" name="investment_horizon_years" required>
         </label>
       </fieldset>

@@ -156,10 +156,33 @@ in the Year 1 plan.
 
 - Single risk-tolerance question instead of a real risk-profiling
   questionnaire.
-- One general investment horizon plus an optional per-goal override, not
-  a full multi-goal portfolio.
+- One investment horizon question total, applied to whichever single goal
+  is selected — no multi-goal portfolio yet (see the iteration log below
+  for why this used to be two horizon questions and no longer is).
 - No persistence — refreshing loses your results.
 - Chart is a small hand-rolled inline SVG, not a charting library — this
   environment couldn't reach any CDN to verify one would load, and for
   three lines on a chart it wasn't worth the external dependency anyway.
 - No dependency on live financial data anywhere.
+
+## Iteration log
+
+**2026-09-21 — first round of real user testing.** Feedback was overall
+positive; two specific points of confusion came up more than once:
+
+1. Having both a "general investment horizon" question and an optional
+   "goal-specific horizon" question read as being asked the same thing
+   twice — testers weren't sure which one actually mattered. Fix: dropped
+   the goal-specific override from the form entirely; there's now one
+   horizon question. (`engine/recommendation.py` still supports a per-goal
+   override for later, when the product actually handles multiple
+   simultaneous goals — only the form was simplified.)
+2. Testers who keep all their money in one undifferentiated savings
+   account (common for a young beginner) found it odd to be asked
+   separately "how much do you have saved" and "how many months of
+   expenses is your emergency fund" — it felt redundant, since they don't
+   mentally split their savings into labeled buckets. Fix: removed the
+   emergency-fund question from the form; it's now computed from savings
+   ÷ expenses (see `_emergency_fund_months` in `app.py`), and the warning
+   message shows that arithmetic explicitly so it's clear where the number
+   came from, rather than asking the same thing twice in different words.

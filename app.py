@@ -29,17 +29,36 @@ from engine.simulator import run_scenarios
 app = Flask(__name__)
 
 
+def _emergency_fund_months(current_savings: float, monthly_expenses: float) -> float:
+    """How many months of expenses the user's savings would cover.
+
+    Phase 0 testing showed people found it confusing to be asked for this
+    directly right after already being asked for savings and expenses — it
+    read as the same question twice. It isn't a separate fact someone
+    usually knows off the top of their head anyway; it's arithmetic on two
+    numbers we already collected, so we do that arithmetic instead of asking
+    again. If they have no ongoing expenses to speak of, there's no burn
+    rate to protect against, so we don't warn.
+    """
+    if monthly_expenses <= 0:
+        return 99.0
+    return current_savings / monthly_expenses
+
+
 def _profile_from_form(form) -> UserProfile:
+    monthly_expenses = float(form["monthly_expenses"])
+    current_savings = float(form["current_savings"])
+
     return UserProfile(
         age=int(form["age"]),
         country=form["country"],
         occupation=form["occupation"],
         monthly_income=float(form["monthly_income"]),
-        monthly_expenses=float(form["monthly_expenses"]),
-        current_savings=float(form["current_savings"]),
+        monthly_expenses=monthly_expenses,
+        current_savings=current_savings,
         debt_amount=float(form["debt_amount"] or 0),
         debt_is_high_interest=form.get("debt_is_high_interest") == "on",
-        emergency_fund_months=float(form["emergency_fund_months"] or 0),
+        emergency_fund_months=_emergency_fund_months(current_savings, monthly_expenses),
         investment_experience=InvestmentExperience(form["investment_experience"]),
         monthly_amount_available=float(form["monthly_amount_available"]),
         risk_tolerance=RiskTolerance(form["risk_tolerance"]),
@@ -48,11 +67,12 @@ def _profile_from_form(form) -> UserProfile:
 
 
 def _goal_from_form(form) -> Goal:
-    horizon = form.get("goal_horizon_years")
-    return Goal(
-        goal_type=GoalType(form["goal_type"]),
-        horizon_years=float(horizon) if horizon else None,
-    )
+    # Phase 0 testing showed a second, goal-specific horizon question next to
+    # the general one read as redundant rather than useful — people weren't
+    # sure which one actually mattered. Dropped for now; every goal just uses
+    # the one horizon answer. (The engine still supports a per-goal override
+    # for when the product actually has multiple simultaneous goals.)
+    return Goal(goal_type=GoalType(form["goal_type"]))
 
 
 @app.route("/", methods=["GET"])

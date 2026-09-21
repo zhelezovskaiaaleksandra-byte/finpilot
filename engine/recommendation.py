@@ -115,12 +115,12 @@ def _check_guardrails(profile: UserProfile) -> list[Guardrail]:
         ))
 
     if profile.emergency_fund_months < 3:
-        shortfall = "no" if profile.emergency_fund_months <= 0 else f"only {profile.emergency_fund_months:.1f} months of"
         guardrails.append(Guardrail(
             severity="warning",
             message=(
-                f"You currently have {shortfall} expenses saved as an emergency fund. "
-                "Most guidance suggests 3-6 months of essential expenses in cash before investing "
+                f"Based on your €{profile.current_savings:.0f} in savings and €{profile.monthly_expenses:.0f}/month "
+                f"in expenses, that's about {profile.emergency_fund_months:.1f} months of expenses covered as an "
+                "emergency fund. Most guidance suggests 3-6 months of essential expenses in cash before investing "
                 "meaningfully, so a market downturn doesn't force you to sell investments at a bad time."
             ),
         ))
