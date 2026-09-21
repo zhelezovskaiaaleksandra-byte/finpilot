@@ -9,6 +9,9 @@ no real market data. If Phase 0 goes well, this UI gets thrown away — the
 `engine/` package underneath it (the actual rules) is the part meant to
 survive into Phase 2.
 
+For the mission, roadmap, and full Phase 0 testing history, see
+[`docs/`](./docs/README.md).
+
 ## One-time setup: a proper dev environment
 
 Do this once, now, before making changes — it's a small amount of setup
