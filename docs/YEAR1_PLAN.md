@@ -28,6 +28,8 @@ Build the real (not prototype) version of: the profile form, the goals selection
 
 Definition of done: a user can fill out their profile and goals and get back a recommended allocation with an explanation, running on a deployed URL, even if the rest of the site is ugly.
 
+**Status: in progress.** The Flask prototype was replaced with a real FastAPI app covering profile → goal → recommendation; `engine/` carried over unchanged. Not yet deployed publicly. See the root `README.md` iteration log for the migration notes.
+
 ## Phase 3 — Interactive simulator (months 6–9)
 
 Add the sliders (contribution, horizon, expected return, risk level) and the optimistic/expected/pessimistic scenario chart, driven by compound-interest math. Use fixed, clearly-labeled assumed return ranges per risk band — not live market data (that's Year 2) and not a forecast. Every screen showing projected numbers should say plainly that these are illustrative assumptions, not predictions or guarantees.

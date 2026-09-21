@@ -1,9 +1,13 @@
-"""Phase 0 prototype: a deliberately plain Flask app.
+"""Phase 2: the real (non-throwaway) FastAPI app.
 
-The point of this app is NOT the UI — it's to get the recommendation and
-simulator logic in front of real people fast and see whether the results
-feel right to them. Styling, polish, and account persistence are all
-Phase 2+ concerns.
+Replaces the Phase 0 Flask prototype. The `engine/` package underneath is
+unchanged — it was already framework-agnostic — only the web layer moved.
+
+Scope for this milestone: profile -> goal -> recommendation, per the Year 1
+plan's Phase 2 definition of done. The interactive simulator (sliders +
+chart) is Phase 3 — deliberately left out here even though the engine
+support for it already exists, so the phases stay honest checkpoints
+rather than one big rebuild.
 
 Run with:
     pip install -r requirements.txt
@@ -13,7 +17,10 @@ then open http://127.0.0.1:5000
 
 import os
 
-from flask import Flask, jsonify, render_template, request
+from fastapi import FastAPI, Request
+from fastapi.responses import HTMLResponse
+from fastapi.staticfiles import StaticFiles
+from fastapi.templating import Jinja2Templates
 
 from engine.profile import (
     Goal,
@@ -24,9 +31,10 @@ from engine.profile import (
     GOAL_LABELS,
 )
 from engine.recommendation import recommend
-from engine.simulator import run_scenarios
 
-app = Flask(__name__)
+app = FastAPI()
+app.mount("/static", StaticFiles(directory="static"), name="static")
+templates = Jinja2Templates(directory="templates")
 
 
 def _emergency_fund_months(current_savings: float, monthly_expenses: float) -> float:
@@ -75,69 +83,43 @@ def _goal_from_form(form) -> Goal:
     return Goal(goal_type=GoalType(form["goal_type"]))
 
 
-@app.route("/", methods=["GET"])
-def index():
-    return render_template(
+@app.get("/", response_class=HTMLResponse)
+async def index(request: Request):
+    return templates.TemplateResponse(
+        request,
         "index.html",
-        goal_types=list(GoalType),
-        goal_labels=GOAL_LABELS,
-        risk_options=list(RiskTolerance),
-        experience_options=list(InvestmentExperience),
+        {
+            "goal_types": list(GoalType),
+            "goal_labels": GOAL_LABELS,
+            "risk_options": list(RiskTolerance),
+            "experience_options": list(InvestmentExperience),
+        },
     )
 
 
-@app.route("/results", methods=["POST"])
-def results():
-    profile = _profile_from_form(request.form)
-    goal = _goal_from_form(request.form)
+@app.post("/results", response_class=HTMLResponse)
+async def results(request: Request):
+    form = await request.form()
+    profile = _profile_from_form(form)
+    goal = _goal_from_form(form)
 
     rec = recommend(profile, goal)
     horizon = goal.effective_horizon(profile)
-    scenarios = run_scenarios(
-        rec.portfolio,
-        initial_amount=profile.current_savings,
-        monthly_contribution=rec.suggested_monthly_contribution,
-        years=horizon,
-    )
 
-    return render_template(
+    return templates.TemplateResponse(
+        request,
         "results.html",
-        profile=profile,
-        goal=goal,
-        goal_label=GOAL_LABELS[goal.goal_type],
-        horizon=horizon,
-        rec=rec,
-        scenarios=scenarios,
+        {
+            "profile": profile,
+            "goal": goal,
+            "goal_label": GOAL_LABELS[goal.goal_type],
+            "horizon": horizon,
+            "rec": rec,
+        },
     )
-
-
-@app.route("/api/simulate", methods=["POST"])
-def api_simulate():
-    """Recomputes scenarios when the user drags a slider, without a full page reload."""
-    data = request.get_json()
-
-    from engine.recommendation import MODEL_PORTFOLIOS, RiskBand
-
-    portfolio = MODEL_PORTFOLIOS[RiskBand(int(data["risk_band"]))]
-    scenarios = run_scenarios(
-        portfolio,
-        initial_amount=float(data["initial_amount"]),
-        monthly_contribution=float(data["monthly_contribution"]),
-        years=float(data["years"]),
-    )
-
-    return jsonify({
-        "scenarios": [
-            {
-                "label": s.label,
-                "annual_return": s.annual_return,
-                "final_balance": s.final_balance,
-                "points": [{"year": p.year, "balance": p.balance} for p in s.points],
-            }
-            for s in scenarios
-        ]
-    })
 
 
 if __name__ == "__main__":
-    app.run(debug=True, port=int(os.environ.get("PORT", 5000)))
+    import uvicorn
+
+    uvicorn.run("app:app", host="127.0.0.1", port=int(os.environ.get("PORT", 5000)), reload=True)
