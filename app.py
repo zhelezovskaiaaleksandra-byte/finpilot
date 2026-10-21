@@ -124,6 +124,9 @@ def simulate(initial: float, monthly: float, years: float, rate: float):
     points = project_growth(initial, monthly, rate, years)
     return [{"year": p.year, "balance": p.balance} for p in points]
 
+@app.get("/simulator", response_class=HTMLResponse)
+async def simulator(request: Request):
+    return templates.TemplateResponse(request, "simulator.html", {})
 
 if __name__ == "__main__":
     import uvicorn
