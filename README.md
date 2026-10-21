@@ -1,5 +1,9 @@
 # FinPilot — Phase 2
 
+**Live demo:** https://finpilot-xsys.onrender.com
+(hosted on Render's free tier, so the first visit after a quiet spell can
+take 30–60 seconds to wake up)
+
 The Phase 0 throwaway prototype (Flask) validated the recommendation logic
 with real users and was retired. This is the real (non-throwaway) build,
 per the Year 1 plan's Phase 2: a FastAPI app covering the core loop —
@@ -96,9 +100,31 @@ Then open http://127.0.0.1:5000 in a browser and fill out the form.
 
 **This only runs on your own computer.** A link like
 `http://127.0.0.1:5000` means nothing on anyone else's machine — "local"
-means it only listens on your laptop, not the internet. A real, permanent
-public deploy (Render/Railway/Fly.io, per the Year 1 plan) comes right
-after this core loop works, not at the end.
+means it only listens on your laptop, not the internet. The public version
+is the deployed one below.
+
+## Deployment
+
+The app is live at **https://finpilot-xsys.onrender.com**, running as a
+free Render Web Service built straight from this repo's `main` branch.
+
+| Setting | Value |
+| --- | --- |
+| Language | Python 3 |
+| Branch | `main` |
+| Build command | `pip install -r requirements.txt` |
+| Start command | `uvicorn app:app --host 0.0.0.0 --port $PORT` |
+| Instance type | Free |
+
+- **Every push to `main` redeploys automatically.** Render rebuilds and
+  restarts the app; nothing else to do.
+- In the start command, `app:app` means "the file `app.py`, the variable
+  `app` inside it". `--host 0.0.0.0` makes it listen to the internet rather
+  than only to the machine itself, and `$PORT` is the port Render assigns.
+- Free instances go to sleep after ~15 minutes with no visitors, so the
+  next visit takes 30–60 seconds to load. That's expected, not a bug.
+
+Full history of each deploy: [`docs/DEPLOY_LOG.md`](./docs/DEPLOY_LOG.md).
 
 ## Running the tests
 
@@ -180,3 +206,11 @@ deliberately not carried over yet — Phase 2's definition of done is just
 profile → goal → recommendation; the simulator comes back in Phase 3.
 All 21 tests kept passing throughout since none of them touch the web
 framework directly.
+
+**2026-10-21 — first public deploy.** Deployed to Render's free tier at
+https://finpilot-xsys.onrender.com, closing the "deploy right after the
+core loop works" step of the Year 1 plan. No code changes were needed. The
+first attempt failed because the start command pointed at `main:app`, but
+the FastAPI app lives in `app.py`; changing it to `app:app` fixed it.
+Profile → goal → recommendation checked end to end on the live site. See
+[`docs/DEPLOY_LOG.md`](./docs/DEPLOY_LOG.md).
