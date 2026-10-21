@@ -31,6 +31,7 @@ from engine.profile import (
     GOAL_LABELS,
 )
 from engine.recommendation import recommend
+from engine.simulator import project_growth
 
 app = FastAPI()
 app.mount("/static", StaticFiles(directory="static"), name="static")
@@ -117,6 +118,11 @@ async def results(request: Request):
             "rec": rec,
         },
     )
+
+@app.get("/api/simulate")
+def simulate(initial: float, monthly: float, years: float, rate: float):
+    points = project_growth(initial, monthly, rate, years)
+    return [{"year": p.year, "balance": p.balance} for p in points]
 
 
 if __name__ == "__main__":
