@@ -119,6 +119,10 @@ async def results(request: Request):
         },
     )
 
+@app.get("/results")
+def results_get():
+    return RedirectResponse("/")
+
 @app.get("/api/simulate")
 def simulate(initial: float, monthly: float, years: float, rate: float):
     points = project_growth(initial, monthly, rate, years)
