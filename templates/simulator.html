@@ -3,19 +3,24 @@
 <body>
   <h1>Investment simulator</h1>
   <label>Years: <span id="years-label">10</span></label><br>
-  <input type="range" id="years" min="1" max="40" value="10">
+  <input type="range" id="years" min="1" max="40" value="10"><br>
+  
+  <label>Monthly amount: <span id="monthly-label">100</span></label><br>
+  <input type="range" id="monthly" min="0" max="1000" value="100">
 
   <p>After these years you would have: <strong id="result">...</strong></p>
-  <p><small>Illustrative only: assumes €1,000 to start, €100 a month and 5% a year. Not a prediction.</small></p>
+  <p><small>Illustrative only: assumes €1,000 to start, the monthly amount you choose and 5% a year. Not a prediction.</small></p>
 
   <script>
-    const slider = document.getElementById("years");
+    const slider = document.getElementById("years"); 
+    const monthlySlider = document.getElementById("monthly");
 
     // Ask your Python API for the numbers, then show the last balance.
     async function update() {
       document.getElementById("years-label").textContent = slider.value;
+      document.getElementById("monthly-label").textContent = monthlySlider.value;
 
-      const url = "/api/simulate?initial=1000&monthly=100&rate=0.05&years=" + slider.value;
+      const url = "/api/simulate?initial=1000&rate=0.05&monthly=" + monthlySlider.value + "&years=" + slider.value;
       const response = await fetch(url);      // send the request to app.py
       const points = await response.json();   // turn the reply into a JS list
 
@@ -23,7 +28,8 @@
       document.getElementById("result").textContent = "€" + last.balance;
     }
 
-    slider.oninput = update;  // run update() every time the slider moves
+    slider.oninput = update; // run update() every time the slider moves
+    monthlySlider.oninput = update;
     update();                 // and once when the page first opens
   </script>
 </body>
