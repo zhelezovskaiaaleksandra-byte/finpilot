@@ -1,19 +1,44 @@
 <!doctype html>
 <html>
+<head>
+  <!-- NEW: load Chart.js, a free library that draws charts -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+</head>
 <body>
   <h1>Investment simulator</h1>
   <label>Years: <span id="years-label">10</span></label><br>
   <input type="range" id="years" min="1" max="40" value="10"><br>
-  
-  <label>Monthly amount: <span id="monthly-label">100</span></label><br>
+
+  <label>Monthly amount (€): <span id="monthly-label">100</span></label><br>
   <input type="range" id="monthly" min="0" max="1000" value="100">
 
   <p>After these years you would have: <strong id="result">...</strong></p>
+
+  <!-- NEW: an empty drawing area for the chart -->
+  <div style="max-width: 700px;">
+    <canvas id="chart"></canvas>
+  </div>
+
   <p><small>Illustrative only: assumes €1,000 to start, the monthly amount you choose and 5% a year. Not a prediction.</small></p>
 
   <script>
-    const slider = document.getElementById("years"); 
+    const slider = document.getElementById("years");
     const monthlySlider = document.getElementById("monthly");
+
+    // NEW: create the chart once, empty for now. update() fills it in.
+        const chart = new Chart(document.getElementById("chart"), {
+      type: "line",
+      data: {
+        labels: [],
+        datasets: [{ label: "Balance (€)", data: [] }]
+      },
+      options: {
+        scales: {
+          x: { title: { display: true, text: "Years" } },
+          y: { title: { display: true, text: "Balance (€)" } }
+        }
+      }
+    });
 
     // Ask your Python API for the numbers, then show the last balance.
     async function update() {
@@ -26,6 +51,11 @@
 
       const last = points[points.length - 1]; // the final year
       document.getElementById("result").textContent = "€" + last.balance;
+
+      // NEW: give the chart the years and balances, then redraw it.
+      chart.data.labels = points.map(p => p.year);            // [0, 1, 2, ...]
+      chart.data.datasets[0].data = points.map(p => p.balance); // [1000, 2277.26, ...]
+      chart.update();
     }
 
     slider.oninput = update; // run update() every time the slider moves
