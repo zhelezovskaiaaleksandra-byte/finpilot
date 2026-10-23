@@ -125,8 +125,8 @@ def results_get():
 
 @app.get("/api/simulate")
 def simulate(initial: float, monthly: float, years: float, rate: float):
-    points = project_growth(initial, monthly, rate, years)
-    return [{"year": p.year, "balance": p.balance} for p in points]
+    points = project_growth(initial, monthly, rate, years, every_month=years <= 2)
+    return [{"year": p.year, "month": round(p.year * 12), "balance": p.balance} for p in points]
 
 @app.get("/simulator", response_class=HTMLResponse)
 async def simulator(request: Request):

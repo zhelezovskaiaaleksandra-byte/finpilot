@@ -53,8 +53,10 @@
       document.getElementById("result").textContent = "€" + last.balance;
 
       // NEW: give the chart the years and balances, then redraw it.
-      chart.data.labels = points.map(p => p.year);            // [0, 1, 2, ...]
-      chart.data.datasets[0].data = points.map(p => p.balance); // [1000, 2277.26, ...]
+      const short = slider.value <= 2;
+      chart.data.labels = points.map(p => short ? p.month : p.year);
+      chart.options.scales.x.title.text = short ? "Months" : "Years";
+      chart.data.datasets[0].data = points.map(p => p.balance);
       chart.update();
     }
 

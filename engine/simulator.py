@@ -30,6 +30,7 @@ def project_growth(
     monthly_contribution: float,
     annual_return_rate: float,
     years: float,
+    every_month: bool = False
 ) -> list[YearPoint]:
     """Month-by-month compounding, contribution added at the end of each month.
 
@@ -44,11 +45,14 @@ def project_growth(
 
     for month in range(1, total_months + 1):
         balance = balance * (1 + monthly_rate) + monthly_contribution
-        if month % 12 == 0:
-            points.append(YearPoint(year=month // 12, balance=round(balance, 2)))
+        if every_month:
+            points.append(YearPoint(year=round(month / 12,2), balance=round(balance, 2)))
+        elif month % 12 ==0:
+            points.append(YearPoint(year=month//12, balance=round(balance,2)))
+            
 
     # Capture a partial final year if the horizon isn't a whole number of years.
-    if total_months % 12 != 0:
+    if total_months % 12 != 0 and not every_month:
         points.append(YearPoint(year=round(years, 1), balance=round(balance, 2)))
 
     return points
